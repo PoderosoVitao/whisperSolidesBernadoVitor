@@ -1,19 +1,39 @@
 class TranscribeJob < ApplicationJob
   queue_as :default
 
-  def perform(audio_binario)
+  def perform(file_path)
+    return unless File.exist?(file_path)
 
-    # re-escreve o conteudo de um arquivo .opus para um novo arquivo .ogg
-    if audio_binario.respond_to?(:original_filename) && File.extname(audio_binario.original_filename) == ".opus"
-      temp_file = Tempfile.new([ "converted", ".ogg" ], binmode: true)
-      temp_file.write(audio_binario.read)
-      temp_file.rewind
-      audio_binario = temp_file
+    begin
+      ### START - re-escreve o conteudo de um arquivo .opus para um novo arquivo .ogg
+      dirname = File.dirname(file_path)
+      basename = File.basename(file_path, ".opus")
+      extension = File.extname(file_path)
+
+      if extension == ".opus"
+        new_file_path = File.join(dirname, "#{basename}.ogg")
+        FileUtils.mv(file_path, new_file_path)
+        file_path = new_file_path
+        puts "Renamed: #{file_path} -> #{new_file_path}"
+      else
+        puts "No change: #{file_path} is not an .opus file."
+      end
+
+      File.open(file_path, "rb") do |audio_file|
+        transcription = OpenaiService.new.transcribe(audio_file)
+        Rails.logger.info("Transcription Completed: #{transcription}")
+      end
+      ### END - bloco de conversão OPUS -> OGG
+    rescue => e
+      Rails.logger.error("Error in TranscribeJob: #{e.message}")
+    ensure
+      if File.exist?(file_path)
+        begin
+          File.delete(file_path)
+        rescue => e
+          Rails.logger.error("Failed to delete file: #{e.message}")
+        end
+      end
     end
-
-
-    service_openai = ::OpenaiService.new()
-    transcricao = service_openai.transcribe(audio_binario)
-    transcricao
   end
 end
