@@ -5,6 +5,7 @@ class TranscribeJob < ApplicationJob
     return unless File.exist?(file_path)
 
     begin
+      puts "Arquivo encontrado1: #{file_path} (#{File.size(file_path)} bytes)"
       ### START - re-escreve o conteudo de um arquivo .opus para um novo arquivo .ogg
       dirname = File.dirname(file_path)
       basename = File.basename(file_path, ".opus")
@@ -18,10 +19,17 @@ class TranscribeJob < ApplicationJob
       else
         puts "No change: #{file_path} is not an .opus file."
       end
-
-      File.open(file_path, "rb") do |audio_file|
-        transcription = OpenaiService.new.transcribe(audio_file)
-        Rails.logger.info("Transcription Completed: #{transcription}")
+      control = OpenaiService.new.cortar_audio(file_path, "Cortado.ogg")
+      if control
+        File.open("Cortado.ogg", "rb") do |audio_file|
+          transcription = OpenaiService.new.transcribe(audio_file)
+          Rails.logger.info("Transcription Completed: #{transcription}")
+        end
+      else 
+        File.open(file_path, "rb") do |audio_file|
+          transcription = OpenaiService.new.transcribe(audio_file)
+          Rails.logger.info("Transcription Completed: #{transcription}")
+        end
       end
       ### END - bloco de conversão OPUS -> OGG
     rescue => e
