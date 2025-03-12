@@ -10,11 +10,11 @@ class TranscribeJob < ApplicationJob
       puts "Arquivo encontrado1: #{file_path} (#{File.size(file_path)} bytes)"
       # pega o nome do diretorio, do arquivo e da extensao.
       dirname = File.dirname(file_path)
-      basename = File.basename(file_path, ".opus")
+      basename = File.basename(file_path, File.extname(file_path))
       extension = File.extname(file_path)
 
       # Loga o pedido de transcricao na base de dados.
-      original_filename = "#{basename}.opus"
+      original_filename = "#{basename}" + extension
       transcription_record = Transcription.find_or_create_by(original_filename: original_filename)
 
       # Bloco que cuida da conversao .opus -> .ogg
@@ -55,7 +55,9 @@ class TranscribeJob < ApplicationJob
       if File.exist?(file_path)
         begin
           File.delete(file_path)
-          File.delete(output_path)
+          if control and File.exist?(output_path)
+            File.delete(output_path)
+          end
         rescue => e
           Rails.logger.error("Failed to delete file: #{e.message}")
         end

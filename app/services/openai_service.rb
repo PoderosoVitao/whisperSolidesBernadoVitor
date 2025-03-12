@@ -22,7 +22,7 @@ class OpenaiService
     response.body
   end
 
-  def cortar_audio(input_path, output_path, duracao = 10)
+  def cortar_audio(input_path, output_path, duracao = 60)
     movie = FFMPEG::Movie.new(input_path)
     if movie.duration > duracao
       begin
