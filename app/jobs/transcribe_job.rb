@@ -1,3 +1,5 @@
+require 'fileutils'
+
 class TranscribeJob < ApplicationJob
   queue_as :default
 
@@ -27,9 +29,11 @@ class TranscribeJob < ApplicationJob
 
       # Bloco que cuida dos limites de tamanho do audio e corta-o se necessario.
       transcription = nil
-      control = OpenaiService.new.cortar_audio(file_path, "Cortado.ogg")
+      arquivoCortado = File.basename(file_path, File.extname(file_path)) #Capturando o nome do arquivo sem a extensão
+      output_path = arquivoCortado + "Cortado" + File.extname(file_path) #Adicionando a extensão
+      control = OpenaiService.new.cortar_audio(file_path, output_path)
       if control
-        File.open("Cortado.ogg", "rb") do |audio_file|
+        File.open(output_path, "rb") do |audio_file|
           transcription = OpenaiService.new.transcribe(audio_file)
           Rails.logger.info("Transcription Completed: #{transcription}")
         end
@@ -51,6 +55,7 @@ class TranscribeJob < ApplicationJob
       if File.exist?(file_path)
         begin
           File.delete(file_path)
+          File.delete(output_path)
         rescue => e
           Rails.logger.error("Failed to delete file: #{e.message}")
         end

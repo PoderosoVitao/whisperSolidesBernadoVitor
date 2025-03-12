@@ -18,6 +18,7 @@ class OpenaiService
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) do |http|
       http.request(request)
     end
+    puts("Transcrito!! : " + response.body)
     response.body
   end
 
